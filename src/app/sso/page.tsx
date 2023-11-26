@@ -3,11 +3,51 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from "next/link";
+import {USERS_USERLOGIN_URL} from "@/config/api";
+import {useRouter} from "next/navigation";
+import {Loader2} from "lucide-react";
 
 const LoginPage = () => {
-  const handleLogin = (event: any) => {
+  const route = useRouter();
+  const [status, setStatus] = React.useState('idle');
+  const [loggingIn, setLoggingIn] = React.useState(false);
+
+  const handleLogin = (event) => {
     event.preventDefault();
-    // Perform login logic here
+    const formData = new FormData(event.currentTarget);
+    const schId = formData.get('username');
+    const password = formData.get('password');
+    setLoggingIn(true)
+
+    fetch(USERS_USERLOGIN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        schId: schId,
+        password: password,
+      }),
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.code === 200) {
+        console.log('Login success:', data);
+        route.push('/');
+      } else if (data.code === 401) {
+        console.error('Login failed:', data.msg);
+        setStatus('登录失败：用户名或密码错误');
+      } else {
+        console.error('Login failed:', data.msg);
+        setStatus('登录失败：' + data.msg);
+      }
+        setLoggingIn(false)
+    })
+    .catch(error => {
+      console.error('Error:', error);
+        setStatus('登录失败：' + error);
+        setLoggingIn(false)
+    });
   };
 
   return (
@@ -62,10 +102,12 @@ const LoginPage = () => {
                 </div>
                 <div className="flex flex-col space-y-4">
                   <button
+                      disabled={loggingIn}
                       type="submit"
                       className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
                   >
-                    登录
+                    {loggingIn && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {loggingIn ? '登录中' : '登录'}
                   </button>
                   <Link href="/">
                   <button
@@ -86,6 +128,13 @@ const LoginPage = () => {
                   更多登录方式
                 </span>
               </div> */}
+              {status !== 'idle' && (
+                <div className="text-center rounded-md bg-red-500 p-2 mt-6">
+                  <span className="inline-block text-white font-normal text-sm">
+                    登录失败，请检查用户名和密码是否正确。
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import {Check, ChevronsUpDown, Loader2} from "lucide-react"
+import { Check, ChevronsUpDown } from "lucide-react"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 
@@ -28,7 +28,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "@/components/ui/use-toast"
 import {useEffect, useState} from "react";
 import {FILES_KEY_URL, USERS_KEYGROUP_URL, USERS_USERGROUP_URL} from "@/config/api";
 import {Input} from "@/components/ui/input";
@@ -37,6 +37,9 @@ const FormSchema = z.object({
   keyGroup: z.string({
     required_error: "请选择一个密钥分类。",
   }),
+  userGroup: z.string({
+    required_error: "请选择一个班级分类。",
+  }),
   fileUpload: z.string({
     required_error: "请选择要上传的密钥文件。",
   }),
@@ -44,11 +47,10 @@ const FormSchema = z.object({
 
 export function ImportForm() {
   const [identityOptions, setIdentityOptions] = useState([]);
+  const [userGroups, setUserGroups] = useState([]);
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
   });
-  const [status, setStatus] = useState("idle");
-  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetch(USERS_KEYGROUP_URL)
@@ -65,6 +67,23 @@ export function ImportForm() {
     .catch(error => {
       console.error('Error fetching identities:', error);
     });
+
+
+    // 获取用户组数据
+    fetch(USERS_USERGROUP_URL)
+    .then(response => response.json())
+    .then(data => {
+      if (data.code === 200) {
+        const groups = data.data.map(item => ({
+          label: item.tag,
+          value: item.id.toString(),
+        }));
+        setUserGroups(groups);
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching user groups:', error);
+    });
   }, []);
 
   // function onSubmit(data: z.infer<typeof FormSchema>) {
@@ -79,14 +98,9 @@ export function ImportForm() {
 
   function onSubmit(data) {
     console.log("submit")
-    setUploading(true);
     const formData = new FormData();
-    const fileInput = document.querySelector('#fileUpload');
-    formData.append('file', fileInput.files[0]); // 假设 fileUpload 是文件列表
+    formData.append('file', data.fileUpload[0]); // 假设 fileUpload 是文件列表
     formData.append('keyIdentity', data.keyGroup);
-
-    // console.log(fileInput.files[0])
-    // console.log(data.fileUpload)
 
     fetch(FILES_KEY_URL, {
       method: 'POST',
@@ -95,18 +109,18 @@ export function ImportForm() {
     .then(response => response.json())
     .then(responseBody => {
       console.log(responseBody)
-      if (responseBody.code === 201) {
-        setStatus("success");
-      } else if (responseBody.code === 402) {
-        setStatus("wrong");
-      } else {
-        setStatus("failed");
-      }
-      setUploading(false);
+      // 显示提交结果
+      toast({
+        title: "提交结果:",
+        description: (
+            <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+          <code className="text-white">{JSON.stringify(responseBody, null, 2)}</code>
+        </pre>
+        ),
+      })
     })
     .catch(error => {
       console.error('提交错误:', error);
-      setUploading(false);
     });
   }
 
@@ -173,6 +187,66 @@ export function ImportForm() {
                   </FormItem>
               )}
           />
+          {/*<FormField*/}
+          {/*    control={form.control}*/}
+          {/*    name="userGroup"*/}
+          {/*    render={({ field }) => (*/}
+          {/*        <FormItem className="flex flex-col">*/}
+          {/*          <FormLabel>班级分类</FormLabel>*/}
+          {/*          <Popover>*/}
+          {/*            <PopoverTrigger asChild>*/}
+          {/*              <FormControl>*/}
+          {/*                <Button*/}
+          {/*                    variant="outline"*/}
+          {/*                    role="combobox"*/}
+          {/*                    className={cn(*/}
+          {/*                        "w-[200px] justify-between",*/}
+          {/*                        !field.value && "text-muted-foreground"*/}
+          {/*                    )}*/}
+          {/*                >*/}
+          {/*                  {field.value*/}
+          {/*                      ? userGroups.find(*/}
+          {/*                          (userGroups) => userGroups.value === field.value*/}
+          {/*                      )?.label*/}
+          {/*                      : "选择分类"}*/}
+          {/*                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />*/}
+          {/*                </Button>*/}
+          {/*              </FormControl>*/}
+          {/*            </PopoverTrigger>*/}
+          {/*            <PopoverContent className="w-[200px] p-0">*/}
+          {/*              <Command>*/}
+          {/*                <CommandInput placeholder="搜索密钥分类..." />*/}
+          {/*                <CommandEmpty>没有找到分类。</CommandEmpty>*/}
+          {/*                <CommandGroup>*/}
+          {/*                  {userGroups.map((option) => (*/}
+          {/*                      <CommandItem*/}
+          {/*                          key={option.value}*/}
+          {/*                          value={option.label}*/}
+          {/*                          onSelect={() => form.setValue("userGroup", option.value)}*/}
+          {/*                      >*/}
+          {/*                        <Check*/}
+          {/*                            className={cn(*/}
+          {/*                                "mr-2 h-4 w-4",*/}
+          {/*                                option.value === field.value*/}
+          {/*                                    ? "opacity-100"*/}
+          {/*                                    : "opacity-0"*/}
+          {/*                            )}*/}
+          {/*                        />*/}
+          {/*                        {option.label}*/}
+          {/*                      </CommandItem>*/}
+          {/*                  ))}*/}
+          {/*                </CommandGroup>*/}
+          {/*              </Command>*/}
+          {/*            </PopoverContent>*/}
+          {/*          </Popover>*/}
+          {/*          <FormDescription>*/}
+          {/*            你的密钥将上传到此班级中。*/}
+          {/*          </FormDescription>*/}
+          {/*          <FormMessage />*/}
+          {/*        </FormItem>*/}
+          {/*    )}*/}
+          {/*/>*/}
+
           <FormField
               control={form.control}
               name="fileUpload"
@@ -180,31 +254,14 @@ export function ImportForm() {
                   <FormItem>
                     <FormLabel>数据文件（xls/xlsx）</FormLabel>
                     <FormControl>
-                      <Input type="file" id="fileUpload" placeholder="上传Excel工作簿..." {...field} />
+                      <Input type="file" placeholder="上传Excel工作簿..." {...field} />
                     </FormControl>
                     <FormDescription>这是你要上传的数据文件</FormDescription>
                     <FormMessage />
                   </FormItem>
               )}
           />
-          <Button disabled={uploading} type="submit">
-            {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {uploading ? '上传中' : '上传'}</Button>
-          {status === "success" && (
-              <div className="p-4 rounded-md bg-green-50">
-                <p>上传成功，数据已成功导入。</p>
-              </div>
-          )}
-          {status === "wrong" && (
-              <div className="p-4 rounded-md bg-red-50">
-                <p>数据格式不匹配，倒入失败。</p>
-              </div>
-          )}
-          {status === "failed" && (
-              <div className="p-4 rounded-md bg-red-50">
-                <p>上传失败。</p>
-              </div>
-          )}
+          <Button type="submit">Submit</Button>
         </form>
       </Form>
   )

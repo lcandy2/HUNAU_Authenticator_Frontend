@@ -17,6 +17,7 @@ import Link from "next/link";
 import {USERS_ADMIN_URL} from "@/config/api";
 import {useState} from "react";
 import {Loader2} from "lucide-react";
+import {useRouter} from "next/navigation";
 
 // Schema definition for form validation using zod
 const loginSchema = z.object({
@@ -34,6 +35,7 @@ export default function LoginCard() {
       password: "",
     },
   });
+  const router = useRouter();
 
   const [buttonLoading, setButtonLoading] = useState(false);
 
@@ -55,7 +57,7 @@ export default function LoginCard() {
 
       if (response.ok && responseBody.code === 200) {
         console.log('Login success:', responseBody);
-        // Handle successful login here (e.g., redirect to dashboard or set user context)
+        router.push('/admin/dashboard');
         setButtonLoading(false);
       } else if (response.ok && responseBody.code === 401) {
         console.error('Login failed(password wrong):', responseBody.msg);
